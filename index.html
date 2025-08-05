@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>home_server :3</title>
+	<style>
+		body {
+			background-color: #B89FC7;
+			font-family: 'Courier New', Courier, monospace;
+			text-align: center;
+			padding: 20px;
+			color: white;
+			min-height: 100vh;
+			margin: 0;
+			position: relative;
+		}
+		header {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 15px;
+		}
+		header img {
+			height: 50px;
+			width: 50px;
+		}
+		#time {
+			font-weight: bold;
+			margin-top: 10px;
+			font-size: 1.2em;
+		}
+		img.main-image {
+    max-width: 400px;
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 10px;
+    }
+	</style>
+</head>
+<body>
+	<header>
+		<h1>home_server :3</h1>
+	</header>
+
+	<div id="time">--:--:--</div>
+
+	<img class="main-image" src="https://pngimg.com/uploads/anime_girl/anime_girl_PNG10.png" alt="Fajny obrazek" />
+	
+	<script>
+		function updateTime() {
+			const now = new Date();
+			const timeString = now.toLocaleTimeString();
+			document.getElementById('time').textContent = 'Time: ' + timeString;
+		}
+		setInterval(updateTime, 1000);
+		updateTime();
+	</script>
+</body>
+</html>
