@@ -39,6 +39,17 @@
 			position: relative;
 			top: 20px;
 		}
+		#banana-counter {
+			position: fixed;
+			top: 10px;
+			left: 10px;
+			background: rgba(184, 159, 199, 0.8);
+			padding: 5px 15px;
+			border-radius: 8px;
+			font-size: 1.2em;
+			font-family: 'Courier New', Courier, monospace;
+			z-index: 10;
+		}
 		img.main-image {
 			max-width: 400px;
 			position: fixed;
@@ -48,13 +59,11 @@
 			border-radius: 10px;
 			transition: left 0.1s linear, transform 0.1s linear;
 		}
-		@keyframes jump {
-			0%   { bottom: 0; }
-			50%  { bottom: 150px; }
-			100% { bottom: 0; }
-		}
-		.jump {
-			animation: jump 0.6s ease;
+		.banana {
+			position: fixed;
+			width: 50px;
+			height: auto;
+			transition: bottom 0.2s;
 		}
 		.spotify-wrapper {
 			max-width: 400px;
@@ -76,9 +85,10 @@
 	</header>
 
 	<div id="time">--:--:--</div>
+	<div id="banana-counter">banana_count: 0</div>
 
 	<div class="spotify-wrapper">
-		<iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/playlist/6aeVYXuP8joQUK6f7c0llX?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+		<iframe src="https://open.spotify.com/embed/playlist/6aeVYXuP8joQUK6f7c0llX?utm_source=generator" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
 	</div>
 
 	<img class="main-image" src="https://pngimg.com/uploads/anime_girl/anime_girl_PNG10.png" alt="Fajny obrazek" />
@@ -93,11 +103,96 @@
 		setInterval(updateTime, 1000);
 		updateTime();
 
-		// Anime girl movement with flipping and boundaries and jump
+		// Anime girl movement
 		const img = document.querySelector('.main-image');
 		let posX = 50;
 		let facingRight = false;
 		let isJumping = false;
+		
+		// For jump animation in JS
+		let jumpStartTime = null;
+		const jumpDuration = 600; // ms total jump time
+		const jumpHeight = 150; // pixels max jump height
+		const groundBottom = 0; // bottom position when standing
+
+		// Persistent banana counter
+		let bananaCount = parseInt(localStorage.getItem('bananaCount')) || 0;
+		const bananaCounter = document.getElementById('banana-counter');
+		bananaCounter.textContent = `banana_count: ${bananaCount}`;
+
+		// Bananas
+		const bananaImgURL = "https://static.vecteezy.com/system/resources/previews/028/044/462/original/banana-pixel-art-png.png";
+		let bananas = [];
+
+		function spawnBanana() {
+			const banana = document.createElement('img');
+			banana.src = bananaImgURL;
+			banana.classList.add('banana');
+
+			// Random horizontal position (5%–95%)
+			const leftPos = Math.random() * 90 + 5;
+			banana.style.left = leftPos + '%';
+
+			// High spawn height (450px to 550px from bottom)
+			const bottomPos = Math.floor(Math.random() * 101) + 450;
+			banana.style.bottom = bottomPos + 'px';
+
+			document.body.appendChild(banana);
+			bananas.push({ element: banana, left: leftPos, bottom: bottomPos });
+		}
+
+		// Initial spawn (2 bananas)
+		for (let i = 0; i < 2; i++) spawnBanana();
+
+		function checkCollision() {
+			bananas.forEach((banana, index) => {
+				if (!banana) return;
+				const girlRect = img.getBoundingClientRect();
+				const bananaRect = banana.element.getBoundingClientRect();
+
+				if (
+					girlRect.left < bananaRect.right &&
+					girlRect.right > bananaRect.left &&
+					girlRect.top < bananaRect.bottom &&
+					girlRect.bottom > bananaRect.top
+				) {
+					// Remove banana
+					banana.element.remove();
+					bananas[index] = null;
+
+					// Update counter and save
+					bananaCount++;
+					localStorage.setItem('bananaCount', bananaCount);
+					bananaCounter.textContent = `banana_count: ${bananaCount}`;
+
+					// Spawn new banana
+					spawnBanana();
+				}
+			});
+			bananas = bananas.filter(b => b !== null);
+		}
+
+		// Jump animation function (JS)
+		function animateJump(timestamp) {
+			if (!jumpStartTime) jumpStartTime = timestamp;
+			const elapsed = timestamp - jumpStartTime;
+
+			if (elapsed < jumpDuration) {
+				// Parabolic jump: y = -4h * (t/T - 0.5)^2 + h
+				const t = elapsed / jumpDuration;
+				const displacement = -4 * jumpHeight * (t - 0.5) * (t - 0.5) + jumpHeight;
+				img.style.bottom = groundBottom + displacement + 'px';
+
+				requestAnimationFrame(animateJump);
+			} else {
+				// End of jump
+				img.style.bottom = groundBottom + 'px';
+				isJumping = false;
+				jumpStartTime = null;
+				checkCollision();
+			}
+			checkCollision();
+		}
 
 		document.addEventListener('keydown', (e) => {
 			if (e.key === 'ArrowLeft') {
@@ -116,13 +211,17 @@
 			}
 			if (e.code === 'Space' && !isJumping) {
 				isJumping = true;
-				img.classList.add('jump');
-				img.addEventListener('animationend', () => {
-					img.classList.remove('jump');
-					isJumping = false;
-				}, { once: true });
+				jumpStartTime = null;
+				requestAnimationFrame(animateJump);
 			}
 			img.style.left = posX + '%';
+
+			if (!isJumping) {
+				// When standing, reset bottom to ground just in case
+				img.style.bottom = groundBottom + 'px';
+			}
+
+			checkCollision();
 		});
 	</script>
 </body>
